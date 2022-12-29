@@ -17,11 +17,11 @@
 package com.netflix.spinnaker.retrofit;
 
 import java.util.Objects;
+import okhttp3.logging.HttpLoggingInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import retrofit.RestAdapter;
 
-public class Slf4jRetrofitLogger implements RestAdapter.Log {
+public class Slf4jRetrofitLogger implements HttpLoggingInterceptor.Logger {
   private final Logger logger;
 
   public Slf4jRetrofitLogger(Class<?> type) {

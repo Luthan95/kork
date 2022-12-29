@@ -34,5 +34,8 @@ subprojects {
       annotationProcessor(platform(project(":spinnaker-dependencies")))
       annotationProcessor("org.springframework.boot:spring-boot-configuration-processor")
     }
+//    configurations.all {
+//      exclude group: 'com.squareup.retrofit', module: 'retrofit'
+//    }
   }
 }

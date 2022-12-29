@@ -1,7 +1,7 @@
 /*
- * Copyright 2016 Netflix, Inc.
+ * Copyright 2022 Netflix, Inc.
  *
- * Licensed under the Apache License, Version 2.0 (the "License")
+ * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -17,18 +17,20 @@
 package com.netflix.spinnaker.okhttp
 
 import com.netflix.spinnaker.security.AuthenticatedRequest
+import okhttp3.Interceptor
 import okhttp3.Request
 import okhttp3.Response
 
-class SpinnakerRequestInterceptor implements okhttp3.Interceptor {
+class SpinnakerRequestRetrofitInterceptor implements Interceptor {
+
   private final OkHttpClientConfigurationProperties okHttpClientConfigurationProperties
 
-  SpinnakerRequestInterceptor(OkHttpClientConfigurationProperties okHttpClientConfigurationProperties) {
+  SpinnakerRequestRetrofitInterceptor(OkHttpClientConfigurationProperties okHttpClientConfigurationProperties) {
     this.okHttpClientConfigurationProperties = okHttpClientConfigurationProperties
   }
 
   @Override
-  Response intercept(Chain chain) throws IOException {
+  Response intercept(Interceptor.Chain chain) throws IOException {
     Request.Builder request = chain.request().newBuilder();
     if (!okHttpClientConfigurationProperties.propagateSpinnakerHeaders) {
       // noop
@@ -40,6 +42,7 @@ class SpinnakerRequestInterceptor implements okhttp3.Interceptor {
         request.addHeader(key, value.get())
       }
     }
+
     return chain.proceed(request.build())
   }
 }

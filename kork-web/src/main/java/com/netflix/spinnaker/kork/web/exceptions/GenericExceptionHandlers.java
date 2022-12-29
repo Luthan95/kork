@@ -20,6 +20,7 @@ import com.google.common.base.Charsets;
 import com.google.common.io.CharStreams;
 import com.netflix.spinnaker.kork.exceptions.HasAdditionalAttributes;
 import com.netflix.spinnaker.kork.exceptions.UserException;
+import com.netflix.spinnaker.retrofit.RetrofitException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Collections;
@@ -35,8 +36,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
-import retrofit.RetrofitError;
-import retrofit.client.Header;
 
 @ControllerAdvice
 public class GenericExceptionHandlers extends BaseExceptionHandlers {
@@ -89,34 +88,36 @@ public class GenericExceptionHandlers extends BaseExceptionHandlers {
     handleResponseStatusAnnotatedException(e, response);
   }
 
-  @ExceptionHandler(RetrofitError.class)
+  @ExceptionHandler(RetrofitException.class)
   public void handleRetrofitError(
-      RetrofitError e, HttpServletResponse response, HttpServletRequest request)
+      RetrofitException e, HttpServletResponse response, HttpServletRequest request)
       throws IOException {
     if (e.getResponse() != null) {
       Map<String, Object> additionalContext = new HashMap<>();
-      additionalContext.put("url", e.getResponse().getUrl());
+      additionalContext.put("url", e.getUrl());
 
-      Header contentTypeHeader =
-          e.getResponse().getHeaders().stream()
-              .filter(h -> h.getName().equalsIgnoreCase("content-type"))
-              .findFirst()
-              .orElse(null);
+      String contentType =
+          e.getResponse().headers().values("content-type").stream().findFirst().orElse(null);
 
-      if (contentTypeHeader != null
-          && contentTypeHeader.getValue().toLowerCase().contains("application/json")) {
+      //      Header contentTypeHeader =
+      //          e.getResponse().getHeaders().stream()
+      //              .filter(h -> h.getName().equalsIgnoreCase("content-type"))
+      //              .findFirst()
+      //              .orElse(null);
+
+      if (contentType != null && contentType.toLowerCase().contains("application/json")) {
         // include any json responses
         additionalContext.put(
             "body",
             CharStreams.toString(
-                new InputStreamReader(e.getResponse().getBody().in(), Charsets.UTF_8)));
+                new InputStreamReader(e.getResponse().errorBody().byteStream(), Charsets.UTF_8)));
       }
 
       RetrofitErrorWrapper retrofitErrorWrapper =
           new RetrofitErrorWrapper(e.getMessage(), additionalContext);
       storeException(request, response, retrofitErrorWrapper);
       response.sendError(
-          e.getResponse().getStatus(),
+          e.getResponse().code(),
           exceptionMessageDecorator.decorate(
               retrofitErrorWrapper, retrofitErrorWrapper.getMessage()));
     } else {

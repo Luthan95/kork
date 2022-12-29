@@ -20,13 +20,12 @@ import com.netflix.spinnaker.retrofit.RetrofitConfigurationProperties
 import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
-import retrofit.RestAdapter
 
 @Configuration
 @EnableConfigurationProperties(RetrofitConfigurationProperties)
 class RetrofitConfiguration {
   @Bean
-  RestAdapter.LogLevel retrofitLogLevel(RetrofitConfigurationProperties retrofitConfigurationProperties) {
+  okhttp3.logging.HttpLoggingInterceptor.Level retrofitLogLevel(RetrofitConfigurationProperties retrofitConfigurationProperties) {
     return retrofitConfigurationProperties.logLevel
   }
 }

@@ -57,7 +57,7 @@ include(
   "kork-secrets-aws",
   "kork-secrets-gcp",
   "kork-security",
-  "kork-retrofit",
+//  "kork-retrofit",
   "kork-retrofit2",
   "kork-sql",
   "kork-sql-test",
