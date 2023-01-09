@@ -1,5 +1,5 @@
 /*
- * Copyright 2020 Google, Inc.
+ * Copyright 2023 OpsMx, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,20 @@
  * limitations under the License.
  */
 
-package com.netflix.spinnaker.kork.retrofit.exceptions;
+package com.netflix.spinnaker.kork.retrofit;
 
-import com.netflix.spinnaker.kork.annotations.NonnullByDefault;
-import retrofit.RetrofitError;
+import com.netflix.spinnaker.kork.retrofit.exceptions.RetrofitException;
+import com.netflix.spinnaker.kork.retrofit.exceptions.SpinnakerNetworkException;
+import java.io.IOException;
+import retrofit2.Call;
 
-/** Wraps an exception of kind {@link RetrofitError.Kind} NETWORK. */
-@NonnullByDefault
-public final class SpinnakerNetworkException extends SpinnakerServerException {
-  public SpinnakerNetworkException(RetrofitError e) {
-    super(e);
-  }
+public class Retrofit2SyncCall<T> {
 
-  public SpinnakerNetworkException(RetrofitException e) {
-    super(e);
+  public static <T> T execute(Call<T> call) {
+    try {
+      return call.execute().body();
+    } catch (IOException e) {
+      throw new SpinnakerNetworkException(RetrofitException.networkError(e));
+    }
   }
 }
