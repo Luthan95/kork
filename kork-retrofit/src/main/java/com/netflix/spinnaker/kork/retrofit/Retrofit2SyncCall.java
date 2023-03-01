@@ -24,9 +24,9 @@ import retrofit2.Call;
 public class Retrofit2SyncCall<T> {
 
   /*
-  * This method used to handle IOException from {@link Call}.execute method centrally,
-  * instead of handling exception in all places of retrofit2 API call
-  * */
+   * This method used to handle IOException from {@link Call}.execute method centrally,
+   * instead of handling exception in all places of retrofit2 API call
+   * */
   public static <T> T execute(Call<T> call) {
     try {
       return call.execute().body();
