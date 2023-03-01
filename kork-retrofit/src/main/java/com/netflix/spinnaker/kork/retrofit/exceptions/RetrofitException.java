@@ -23,6 +23,11 @@ import retrofit2.Converter;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 
+/*
+* The {@link RetrofitException} class is similar to {@link retrofit.RetrofitError}
+* as RetrofitError class is removed in retrofit2. To handle the exception globally and achieve similar logic as retrofit in retrofit2,
+* this exception used along with {@link com.netflix.spinnaker.kork.retrofit.ErrorHandlingExecutorCallAdapterFactory}.
+* */
 public class RetrofitException extends RuntimeException {
   public static RetrofitException httpError(String url, Response response, Retrofit retrofit) {
     String message = response.code() + " " + response.message();

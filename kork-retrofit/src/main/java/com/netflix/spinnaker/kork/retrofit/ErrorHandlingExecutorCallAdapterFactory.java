@@ -36,6 +36,11 @@ import retrofit2.Callback;
 import retrofit2.Response;
 import retrofit2.Retrofit;
 
+/*
+* As part retrofit2 {@link retrofit.RetrofitError} and {@link retrofit.ErrorHandler} are removed.
+* So this class helps to achieve similar logic as retrofit and handle exception globally in retrofit2.
+* This can be achieved by setting this class as CallAdapterFactory at the time of {@link Retrofit} client creation.
+*  */
 public class ErrorHandlingExecutorCallAdapterFactory extends CallAdapter.Factory {
 
   private final @Nullable Executor callbackExecutor;
