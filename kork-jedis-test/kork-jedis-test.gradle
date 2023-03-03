@@ -3,6 +3,6 @@ apply plugin: "java-library"
 dependencies {
   api(platform(project(":spinnaker-dependencies")))
 
-  api "redis.clients:jedis"
+  api "redis.clients:jedis:4.3.1"
   api "io.spinnaker.embedded-redis:embedded-redis"
 }
