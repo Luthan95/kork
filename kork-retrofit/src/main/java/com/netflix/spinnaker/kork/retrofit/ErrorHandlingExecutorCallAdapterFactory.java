@@ -75,6 +75,16 @@ public class ErrorHandlingExecutorCallAdapterFactory extends CallAdapter.Factory
     };
   }
 
+  /**
+   * An invocation of a Retrofit method that sends a request to a webserver and returns a response.
+   * Each call yields its own HTTP request and response pair.
+   *
+   * <p>Calls may be executed synchronously with {@link #execute}, or asynchronously with {@link
+   * #enqueue}. In either case Spinnaker(Http|Network|Server)Exception will be thrown if response is
+   * not successful or an unexpected error occurs creating the request or decoding the response.
+   *
+   * @param <T> Successful response body type.
+   */
   static final class ExecutorCallbackCall<T> implements Call<T> {
 
     final Executor callbackExecutor;
@@ -87,6 +97,12 @@ public class ErrorHandlingExecutorCallAdapterFactory extends CallAdapter.Factory
       this.retrofit = retrofit;
     }
 
+    /**
+     * Synchronously send the request and return its response.
+     *
+     * @throws SpinnakerServerException (and subclasses) if an unexpected error occurs creating the
+     *     request or decoding the response.
+     */
     @Override
     public Response<T> execute() {
       try {
@@ -94,15 +110,7 @@ public class ErrorHandlingExecutorCallAdapterFactory extends CallAdapter.Factory
         if (syncResp.isSuccessful()) {
           return syncResp;
         }
-        SpinnakerHttpException retval =
-            new SpinnakerHttpException(
-                RetrofitException.httpError(
-                    syncResp.raw().request().url().toString(), syncResp, retrofit));
-        if ((syncResp.code() == HttpStatus.NOT_FOUND.value())
-            || (syncResp.code() == HttpStatus.BAD_REQUEST.value())) {
-          retval.setRetryable(false);
-        }
-        throw retval;
+        throw createSpinnakerHttpException(syncResp);
       } catch (SpinnakerHttpException e) {
         throw e;
       } catch (Exception e) {
@@ -114,11 +122,29 @@ public class ErrorHandlingExecutorCallAdapterFactory extends CallAdapter.Factory
       }
     }
 
+    @NotNull
+    private SpinnakerHttpException createSpinnakerHttpException(Response<T> response) {
+      SpinnakerHttpException retval =
+          new SpinnakerHttpException(
+              RetrofitException.httpError(
+                  response.raw().request().url().toString(), response, retrofit));
+      if ((response.code() == HttpStatus.NOT_FOUND.value())
+          || (response.code() == HttpStatus.BAD_REQUEST.value())) {
+        retval.setRetryable(false);
+      }
+      return retval;
+    }
+
+    /**
+     * Asynchronously send the request and notify {@code callback} of its response or if an error
+     * occurred talking to the server, creating the request, or processing the response.
+     */
     @Override
     public void enqueue(Callback<T> callback) {
       checkNotNull(callback, "callback == null");
       delegate.enqueue(
-          new MyExecutorCallback<>(callbackExecutor, delegate, callback, this, retrofit));
+          new SpinnakerCustomExecutorCallback<>(
+              callbackExecutor, delegate, callback, this, retrofit));
     }
 
     @Override
@@ -152,14 +178,18 @@ public class ErrorHandlingExecutorCallAdapterFactory extends CallAdapter.Factory
     }
   }
 
-  static class MyExecutorCallback<T> implements Callback<T> {
+  /*
+   * Handles exceptions globally for async calls and notify {@code callback} with response or
+   * Spinnaker(Http|Network|Server)Exception if an error occurred talking to the server, creating the request, or processing the response.
+   * */
+  static class SpinnakerCustomExecutorCallback<T> implements Callback<T> {
     final Executor callbackExecutor;
     final Call<T> delegate;
     final Callback<T> callback;
     final ExecutorCallbackCall<T> executorCallbackCall;
     private Retrofit retrofit;
 
-    public MyExecutorCallback(
+    public SpinnakerCustomExecutorCallback(
         Executor callbackExecutor,
         Call<T> delegate,
         Callback<T> callback,
@@ -187,17 +217,9 @@ public class ErrorHandlingExecutorCallAdapterFactory extends CallAdapter.Factory
             new Runnable() {
               @Override
               public void run() {
-
-                SpinnakerHttpException retval =
-                    new SpinnakerHttpException(
-                        RetrofitException.httpError(
-                            response.raw().request().url().toString(), response, retrofit));
-                if ((response.code() == HttpStatus.NOT_FOUND.value())
-                    || (response.code() == HttpStatus.BAD_REQUEST.value())) {
-                  retval.setRetryable(false);
-                }
-
-                callback.onFailure(executorCallbackCall, retval);
+                callback.onFailure(
+                    executorCallbackCall,
+                    executorCallbackCall.createSpinnakerHttpException(response));
               }
             });
       }
@@ -222,14 +244,6 @@ public class ErrorHandlingExecutorCallAdapterFactory extends CallAdapter.Factory
               callback.onFailure(executorCallbackCall, finalException);
             }
           });
-    }
-  }
-
-  public static class MainThreadExecutor implements Executor {
-
-    @Override
-    public void execute(@NotNull Runnable runnable) {
-      new Thread(runnable).start();
     }
   }
 
